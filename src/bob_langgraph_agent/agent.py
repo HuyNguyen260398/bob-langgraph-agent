@@ -11,6 +11,11 @@ from .config import BobConfig
 from .state import AgentState, create_initial_state
 
 
+# Constants for workflow control
+CONTINUE = "continue"
+END_CONVERSATION = "end"
+
+
 class BobAgent:
     """Bob LangGraph Agent - A helpful AI assistant and operations buddy.
     
@@ -62,8 +67,8 @@ class BobAgent:
             "update_state",
             self._should_continue,
             {
-                "continue": "process_input",
-                "end": END,
+                CONTINUE: "process_input",
+                END_CONVERSATION: END,
             },
         )
         
@@ -148,13 +153,13 @@ class BobAgent:
             state: Current agent state.
             
         Returns:
-            str: "continue" or "end".
+            str: CONTINUE or END_CONVERSATION.
         """
         # End if explicitly requested or max iterations reached
         if state["should_end"] or state["iteration_count"] >= self.config.max_iterations:
-            return "end"
+            return END_CONVERSATION
         
-        return "continue"
+        return CONTINUE
     
     def chat(self, message: str, thread_id: str = "default") -> str:
         """Send a message to the agent and get a response.
@@ -166,12 +171,21 @@ class BobAgent:
         Returns:
             str: The agent's response.
         """
-        # Create initial state
-        initial_state = create_initial_state(message)
+        # Get existing state or create initial state
+        config = {"configurable": {"thread_id": thread_id}}
+        existing_state = self.app.get_state(config)
+        
+        if existing_state and existing_state.values:
+            # Continue existing conversation
+            current_state = existing_state.values
+            current_state["user_input"] = message
+            current_state["should_end"] = False
+        else:
+            # Create initial state for new conversation
+            current_state = create_initial_state(message)
         
         # Run the workflow
-        config = {"configurable": {"thread_id": thread_id}}
-        result = self.app.invoke(initial_state, config)
+        result = self.app.invoke(current_state, config)
         
         return result["agent_response"]
     
@@ -185,12 +199,21 @@ class BobAgent:
         Yields:
             Updates from the agent as the response is generated.
         """
-        # Create initial state
-        initial_state = create_initial_state(message)
+        # Get existing state or create initial state
+        config = {"configurable": {"thread_id": thread_id}}
+        existing_state = self.app.get_state(config)
+        
+        if existing_state and existing_state.values:
+            # Continue existing conversation
+            current_state = existing_state.values
+            current_state["user_input"] = message
+            current_state["should_end"] = False
+        else:
+            # Create initial state for new conversation
+            current_state = create_initial_state(message)
         
         # Stream the workflow
-        config = {"configurable": {"thread_id": thread_id}}
-        for update in self.app.stream(initial_state, config):
+        for update in self.app.stream(current_state, config):
             yield update
     
     def get_conversation_history(self, thread_id: str = "default") -> list:

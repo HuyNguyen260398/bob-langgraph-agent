@@ -1,6 +1,6 @@
 # Bob LangGraph Agent 🤖
 
-**Beg Ops Buddy** - An AI agent built with LangGraph framework and powered by Anthropic's Claude model.
+**DevOps Buddy** - An AI agent built with LangGraph framework and powered by Anthropic's Claude model.
 
 ## Overview
 

@@ -1,7 +1,7 @@
 [project]
 name = "bob-langgraph-agent"
 version = "0.1.0"
-description = "Beg Ops Buddy - An AI agent built with LangGraph and Anthropic Claude"
+description = "DevOps Buddy - An AI agent built with LangGraph and Anthropic Claude"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
