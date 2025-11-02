@@ -11,7 +11,10 @@ Bob is a conversational AI agent designed to be your operations buddy. Built usi
 - 🧠 **Powered by Claude**: Uses Anthropic's advanced Claude-3.5-Sonnet model
 - 🔄 **State Management**: LangGraph-based workflow with conversation persistence
 - 💬 **Interactive Chat**: Command-line interface for real-time conversations
+- 🛠️ **Function Calling**: Built-in tools for math, text processing, note-taking, and more
+- 🎯 **Advanced Workflow**: Conversation analysis, summarization, and planning
 - ⚙️ **Configurable**: Easy configuration via environment variables or code
+- 🛡️ **Robust Error Handling**: Retry logic, graceful degradation, and fallbacks
 - 📦 **Modern Python**: Built with Python 3.12+ and managed by uv
 - 🏗️ **Modular Design**: Clean separation of concerns with extensible architecture
 
@@ -26,26 +29,34 @@ Bob is a conversational AI agent designed to be your operations buddy. Built usi
 ### Installation
 
 1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/HuyNguyen260398/bob_langgraph_agent.git
-   cd bob_langgraph_agent
-   ```
+
+```bash
+git clone https://github.com/HuyNguyen260398/bob_langgraph_agent.git
+cd bob_langgraph_agent
+
+```
 
 2. **Install dependencies**:
-   ```bash
-   uv sync
-   ```
+
+```bash
+uv sync
+
+```
 
 3. **Set up environment variables**:
-   ```bash
-   cp .env.example .env
-   # Edit .env and add your ANTHROPIC_API_KEY
-   ```
+
+```bash
+cp .env.example .env
+# Edit .env and add your ANTHROPIC_API_KEY
+
+```
 
 4. **Run the agent**:
-   ```bash
-   uv run bob-agent
-   ```
+
+```bash
+uv run bob-agent
+
+```
 
 ### Basic Usage
 
@@ -61,11 +72,12 @@ agent = BobAgent(config)
 # Chat with Bob
 response = agent.chat("Hello Bob, how are you?")
 print(response)
+
 ```
 
 ## Project Structure
 
-```
+```ini
 bob_langgraph_agent/
 ├── src/
 │   └── bob_langgraph_agent/
@@ -78,6 +90,7 @@ bob_langgraph_agent/
 ├── .env.example                 # Environment variables template
 ├── pyproject.toml              # Project configuration
 └── README.md                   # This file
+
 ```
 
 ## Configuration
@@ -88,13 +101,17 @@ Bob can be configured through environment variables or programmatically:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `ANTHROPIC_API_KEY` | Your Anthropic API key | **Required** |
+| `ANTHROPIC_API_KEY` | Your Anthropic API key | __Required__ |
 | `ANTHROPIC_MODEL_NAME` | Claude model to use | `claude-3-5-sonnet-20241022` |
 | `ANTHROPIC_MAX_TOKENS` | Maximum tokens in response | `4096` |
 | `ANTHROPIC_TEMPERATURE` | Response creativity (0-1) | `0.7` |
 | `AGENT_NAME` | Agent's name | `Bob` |
 | `SYSTEM_MESSAGE` | System prompt | `You are Bob, a helpful AI assistant...` |
 | `MAX_ITERATIONS` | Max conversation iterations | `10` |
+| `MAX_CONVERSATION_HISTORY` | Max messages to keep in memory | `20` |
+| `MAX_RETRIES` | Max retry attempts for failed requests | `3` |
+| `RETRY_BASE_DELAY` | Base delay between retries (seconds) | `1.0` |
+| `RETRY_MAX_DELAY` | Maximum delay between retries (seconds) | `60.0` |
 
 ### Programmatic Configuration
 
@@ -107,6 +124,7 @@ config = BobConfig(
     temperature=0.8,
     agent_name="CustomBob"
 )
+
 ```
 
 ## Development
@@ -126,6 +144,7 @@ uv run pytest
 
 # Run the agent
 uv run python -m bob_langgraph_agent.main
+
 ```
 
 ### Contributing

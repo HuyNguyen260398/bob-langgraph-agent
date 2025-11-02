@@ -13,33 +13,39 @@ load_dotenv()
 @dataclass
 class BobConfig:
     """Configuration for Bob LangGraph Agent.
-    
+
     This class handles the configuration settings for the agent,
     including API keys and model settings.
     """
-    
+
     # Anthropic API settings
     anthropic_api_key: Optional[str] = None
     model_name: str = "claude-3-5-sonnet-20241022"
     max_tokens: int = 4096
     temperature: float = 0.7
-    
+
     # Agent settings
     agent_name: str = "Bob"
     system_message: str = "You are Bob, a helpful AI assistant and operations buddy."
     max_iterations: int = 10
-    
+    max_conversation_history: int = 20
+
+    # Error handling settings
+    max_retries: int = 3
+    retry_base_delay: float = 1.0
+    retry_max_delay: float = 60.0
+
     def __post_init__(self):
         """Post-initialization to set API key from environment if not provided."""
         if self.anthropic_api_key is None:
             self.anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
-        
+
         if not self.anthropic_api_key:
             raise ValueError(
                 "ANTHROPIC_API_KEY must be provided either as a parameter "
                 "or as an environment variable"
             )
-    
+
     @classmethod
     def from_env(cls) -> "BobConfig":
         """Create configuration from environment variables."""
@@ -49,6 +55,13 @@ class BobConfig:
             max_tokens=int(os.getenv("ANTHROPIC_MAX_TOKENS", "4096")),
             temperature=float(os.getenv("ANTHROPIC_TEMPERATURE", "0.7")),
             agent_name=os.getenv("AGENT_NAME", "Bob"),
-            system_message=os.getenv("SYSTEM_MESSAGE", "You are Bob, a helpful AI assistant and operations buddy."),
+            system_message=os.getenv(
+                "SYSTEM_MESSAGE",
+                "You are Bob, a helpful AI assistant and operations buddy.",
+            ),
             max_iterations=int(os.getenv("MAX_ITERATIONS", "10")),
+            max_conversation_history=int(os.getenv("MAX_CONVERSATION_HISTORY", "20")),
+            max_retries=int(os.getenv("MAX_RETRIES", "3")),
+            retry_base_delay=float(os.getenv("RETRY_BASE_DELAY", "1.0")),
+            retry_max_delay=float(os.getenv("RETRY_MAX_DELAY", "60.0")),
         )
