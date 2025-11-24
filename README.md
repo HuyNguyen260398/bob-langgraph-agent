@@ -58,6 +58,28 @@ uv run bob-agent
 
 ```
 
+### Docker Deployment 🐳
+
+**Quick Start with Docker:**
+
+```bash
+# 1. Set up environment
+cp .env.example .env
+# Edit .env and add your ANTHROPIC_API_KEY
+
+# 2. Build and start
+docker-compose up -d
+
+# 3. Test the API
+curl http://localhost:8000/health
+```
+
+**Access the API:**
+- Interactive Docs: http://localhost:8000/docs
+- Chat Endpoint: `POST http://localhost:8000/chat`
+
+See [Docker Quick Start](DOCKER_QUICKSTART.md) for detailed instructions and [Deployment Guide](docs/DEPLOYMENT.md) for production deployment.
+
 ### Basic Usage
 
 ```python

@@ -20,7 +20,7 @@ class BobConfig:
 
     # Anthropic API settings
     anthropic_api_key: Optional[str] = None
-    model_name: str = "claude-3-5-sonnet-20241022"
+    model_name: str = "claude-sonnet-3-5-20241022"
     max_tokens: int = 4096
     temperature: float = 0.7
 
@@ -51,7 +51,8 @@ class BobConfig:
         """Create configuration from environment variables."""
         return cls(
             anthropic_api_key=os.getenv("ANTHROPIC_API_KEY"),
-            model_name=os.getenv("ANTHROPIC_MODEL_NAME", "claude-3-5-sonnet-20241022"),
+            model_name=os.getenv("ANTHROPIC_MODEL_NAME")
+            or os.getenv("BOB_MODEL_NAME", "claude-sonnet-3-5-20241022"),
             max_tokens=int(os.getenv("ANTHROPIC_MAX_TOKENS", "4096")),
             temperature=float(os.getenv("ANTHROPIC_TEMPERATURE", "0.7")),
             agent_name=os.getenv("AGENT_NAME", "Bob"),

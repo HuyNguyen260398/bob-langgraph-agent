@@ -103,7 +103,15 @@ class BobAgent:
 
         # Add edges
         workflow.set_entry_point("process_input")
-        workflow.add_edge("process_input", "advanced_processing")
+        # Only do advanced processing if we have user input
+        workflow.add_conditional_edges(
+            "process_input",
+            lambda state: "advanced" if state.get("user_input") else "generate",
+            {
+                "advanced": "advanced_processing",
+                "generate": "generate_response",
+            },
+        )
         workflow.add_edge("advanced_processing", "generate_response")
         workflow.add_conditional_edges(
             "generate_response",
@@ -139,7 +147,7 @@ class BobAgent:
             return handle_state_error(state, "Invalid state detected in process_input")
 
         try:
-            if state["user_input"]:
+            if state.get("user_input"):
                 # Add user message to the conversation
                 human_message = HumanMessage(content=state["user_input"])
                 messages = state["messages"] + [human_message]
@@ -147,6 +155,7 @@ class BobAgent:
                 updated_state = {
                     "messages": messages,
                     "iteration_count": state["iteration_count"] + 1,
+                    "user_input": None,  # Clear user input after processing
                 }
 
                 # Update metadata
@@ -157,8 +166,13 @@ class BobAgent:
                 )
                 new_state = reset_error_state(new_state)
 
+                logger.debug(
+                    f"_process_input: Processed user input, cleared it, messages count={len(new_state['messages'])}"
+                )
                 return new_state
 
+            # No user input to process, just increment iteration
+            logger.debug(f"_process_input: No user input, skipping processing")
             return {
                 "iteration_count": state["iteration_count"] + 1,
                 **update_metadata(state),
@@ -220,10 +234,29 @@ class BobAgent:
                 elif isinstance(msg, AIMessage):
                     messages.append(("assistant", msg.content))
 
+            logger.debug(f"Generating response with {len(messages)} messages")
+
             # Generate response
             response = self.llm.invoke(messages)
 
-            return {"agent_response": response, **reset_error_state(state)}
+            logger.debug(
+                f"Generated response type: {type(response)}, has content: {hasattr(response, 'content')}"
+            )
+            if hasattr(response, "content"):
+                logger.debug(
+                    f"Response content: {response.content[:100] if response.content else 'None'}"
+                )
+
+            # Only return the fields we want to update, not the entire state
+            result_dict = {
+                "agent_response": response,
+                "last_error": None,
+                "retry_count": 0,
+            }
+            logger.debug(
+                f"_generate_response returning: agent_response={type(response)}, content={response.content[:50] if hasattr(response, 'content') and response.content else 'None'}"
+            )
+            return result_dict
 
         def _fallback_generate():
             """Fallback for response generation."""
@@ -268,6 +301,9 @@ class BobAgent:
                 )
 
             agent_response = state.get("agent_response")
+            logger.debug(
+                f"_update_state: agent_response type={type(agent_response)}, value={repr(agent_response)[:100]}"
+            )
             if agent_response:
                 # Add AI message to the conversation
                 messages = state["messages"] + [agent_response]
@@ -330,15 +366,23 @@ class BobAgent:
             state["should_end"]
             or state["iteration_count"] >= self.config.max_iterations
         ):
+            logger.debug(
+                f"_should_continue: END - should_end={state['should_end']}, iterations={state['iteration_count']}"
+            )
             return END_CONVERSATION
 
-        # For single-turn conversations, end after processing one complete cycle
-        # A complete cycle means: user input processed -> response generated -> state updated
+        # For single-turn conversations, end after the first iteration if no user input remains
         if not state.get("continue_conversation", False):
-            # End after we have both processed the input and generated a response
-            if state.get("agent_response") and state["iteration_count"] > 0:
+            # If we've processed at least one iteration and there's no more user input, end
+            if state["iteration_count"] >= 1 and not state.get("user_input"):
+                logger.debug(
+                    "_should_continue: END - single turn complete (no more user input)"
+                )
                 return END_CONVERSATION
 
+        logger.debug(
+            f"_should_continue: CONTINUE - continue_conversation={state.get('continue_conversation')}, iter={state['iteration_count']}"
+        )
         return CONTINUE
 
     def chat(self, message: str, thread_id: str = "default") -> str:
@@ -373,11 +417,28 @@ class BobAgent:
             config_with_limit = {**config, "recursion_limit": 50}
             result = self.app.invoke(current_state, config_with_limit)
 
-            # Extract the final response
+            logger.debug(f"Workflow result keys: {result.keys()}")
+            logger.debug(f"Messages in result: {len(result.get('messages', []))}")
+
+            # Extract the final response from the last AI message in the conversation
+            messages = result.get("messages", [])
+            if messages:
+                # Get the last AI message
+                for msg in reversed(messages):
+                    if isinstance(msg, AIMessage):
+                        logger.debug(
+                            f"Found last AI message: {msg.content[:100] if msg.content else 'None'}"
+                        )
+                        return msg.content if msg.content else "No response generated."
+
+            # Fallback: try agent_response field
             agent_response = result.get("agent_response", "")
-            if hasattr(agent_response, "content"):
-                return agent_response.content
-            return str(agent_response)
+            if agent_response:
+                if hasattr(agent_response, "content"):
+                    return agent_response.content
+                return str(agent_response)
+
+            return "No response generated."
 
         def _fallback_chat():
             """Fallback function for when main chat fails."""

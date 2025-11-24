@@ -15,45 +15,14 @@ def print_streaming_response(agent: BobAgent, user_input: str, thread_id: str):
         user_input: User's input message.
         thread_id: Thread identifier for the conversation.
     """
-    print("🤔 Bob is thinking...", end="", flush=True)
-
-    response_parts = []
-    current_response = ""
-
+    # Use regular chat instead of streaming for simplicity
+    # Streaming was causing issues with the workflow loop
     try:
-        for update in agent.stream_chat(user_input, thread_id):
-            # Check if this update contains a response
-            if "agent_response" in update:
-                agent_response = update["agent_response"]
-                if hasattr(agent_response, "content"):
-                    new_content = agent_response.content
-                elif isinstance(agent_response, str):
-                    new_content = agent_response
-                else:
-                    continue
-
-                # Only print new content (streaming effect)
-                if new_content and new_content != current_response:
-                    if not current_response:
-                        # First response - clear the "thinking" message
-                        print("\r🤖 Bob: ", end="", flush=True)
-
-                    # Print the difference
-                    new_part = new_content[len(current_response) :]
-                    print(new_part, end="", flush=True)
-                    current_response = new_content
-
+        print("🤔 Bob is thinking...", end="", flush=True)
+        response = agent.chat(user_input, thread_id)
+        print(f"\r🤖 Bob: {response}")
     except Exception as e:
-        print(f"\r❌ Streaming error: {e}")
-        # Fallback to regular chat
-        try:
-            response = agent.chat(user_input, thread_id)
-            print(f"\r🤖 Bob: {response}")
-        except Exception as fallback_error:
-            print(f"\r❌ Chat error: {fallback_error}")
-
-    if current_response:
-        print()  # New line after streaming response
+        print(f"\r❌ Error: {e}")
 
 
 def main():
@@ -72,7 +41,6 @@ def main():
 
         # Interactive chat loop
         print("\n💬 Starting interactive chat (type 'quit' to exit)")
-        print("💡 Streaming responses enabled for real-time experience")
         print("-" * 50)
 
         thread_id = "interactive_session"
