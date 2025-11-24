@@ -121,7 +121,8 @@ class BobAgent:
                 "continue": "update_state",
             },
         )
-        workflow.add_edge("tools", "update_state")
+        # After tools execute, generate a final response with the tool results
+        workflow.add_edge("tools", "generate_response")
         workflow.add_conditional_edges(
             "update_state",
             self._should_continue,
@@ -228,13 +229,30 @@ class BobAgent:
             messages.append(("system", system_msg))
 
             # Add conversation history
-            for msg in state["messages"]:
+            logger.debug(f"State messages count: {len(state['messages'])}")
+            for i, msg in enumerate(state["messages"]):
+                logger.debug(
+                    f"Processing message {i}: type={type(msg)}, hasattr tool_calls={hasattr(msg, 'tool_calls') if isinstance(msg, AIMessage) else 'N/A'}"
+                )
                 if isinstance(msg, HumanMessage):
                     messages.append(("human", msg.content))
                 elif isinstance(msg, AIMessage):
-                    messages.append(("assistant", msg.content))
+                    # For AIMessages, include both content and tool_calls
+                    if hasattr(msg, "tool_calls") and msg.tool_calls:
+                        # This is an AIMessage requesting tool calls - include it properly
+                        messages.append(msg)
+                        logger.debug(
+                            f"Added AIMessage with {len(msg.tool_calls)} tool_calls"
+                        )
+                    else:
+                        messages.append(("assistant", msg.content))
+                elif isinstance(msg, ToolMessage):
+                    # Include tool results in the conversation
+                    messages.append(msg)
+                    logger.debug(f"Added ToolMessage: {msg.content[:50]}")
 
             logger.debug(f"Generating response with {len(messages)} messages")
+            logger.debug(f"Message types: {[type(m) for m in messages]}")
 
             # Generate response
             response = self.llm.invoke(messages)
@@ -253,6 +271,15 @@ class BobAgent:
                 "last_error": None,
                 "retry_count": 0,
             }
+
+            # If the response has tool_calls, add it to messages immediately
+            # so the ToolNode can access it
+            if hasattr(response, "tool_calls") and response.tool_calls:
+                result_dict["messages"] = state["messages"] + [response]
+                logger.debug(
+                    f"Added AIMessage with {len(response.tool_calls)} tool_calls to messages list"
+                )
+
             logger.debug(
                 f"_generate_response returning: agent_response={type(response)}, content={response.content[:50] if hasattr(response, 'content') and response.content else 'None'}"
             )
@@ -423,18 +450,35 @@ class BobAgent:
             # Extract the final response from the last AI message in the conversation
             messages = result.get("messages", [])
             if messages:
-                # Get the last AI message
+                # Get the last AI message that has actual content (not just tool calls)
                 for msg in reversed(messages):
                     if isinstance(msg, AIMessage):
-                        logger.debug(
-                            f"Found last AI message: {msg.content[:100] if msg.content else 'None'}"
-                        )
-                        return msg.content if msg.content else "No response generated."
+                        # Check if this message has actual content (not just tool calls)
+                        if (
+                            msg.content
+                            and isinstance(msg.content, str)
+                            and msg.content.strip()
+                        ):
+                            logger.debug(
+                                f"Found last AI message with content: {msg.content[:100]}"
+                            )
+                            return msg.content
+                        # If no content but has tool_calls, this is a tool request - keep looking
+                        elif hasattr(msg, "tool_calls") and msg.tool_calls:
+                            logger.debug(
+                                "Skipping AIMessage with tool_calls, looking for final response"
+                            )
+                            continue
+                        # If content is empty, try the next message
+                        else:
+                            logger.debug(
+                                f"Found AI message but content is: {repr(msg.content)}"
+                            )
 
             # Fallback: try agent_response field
             agent_response = result.get("agent_response", "")
             if agent_response:
-                if hasattr(agent_response, "content"):
+                if hasattr(agent_response, "content") and agent_response.content:
                     return agent_response.content
                 return str(agent_response)
 

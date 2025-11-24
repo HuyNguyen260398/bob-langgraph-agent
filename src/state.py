@@ -1,9 +1,10 @@
 """State management for Bob LangGraph Agent."""
 
-from typing import List, Optional, TypedDict, Union, Dict, Any
+from typing import List, Optional, TypedDict, Union, Dict, Any, Annotated
 from datetime import datetime
 import logging
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
+from langgraph.graph.message import add_messages
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -27,8 +28,8 @@ class AgentState(TypedDict):
     different nodes in the LangGraph workflow.
     """
 
-    # Messages in the conversation
-    messages: List[BaseMessage]
+    # Messages in the conversation - uses add_messages reducer to append instead of replace
+    messages: Annotated[List[BaseMessage], add_messages]
 
     # Current user input
     user_input: Optional[str]
