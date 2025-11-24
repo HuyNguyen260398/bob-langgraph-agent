@@ -9,8 +9,8 @@ from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.prebuilt import ToolNode
 
-from .config import BobConfig
-from .state import (
+from config import BobConfig
+from state import (
     AgentState,
     create_initial_state,
     validate_state,
@@ -19,9 +19,9 @@ from .state import (
     handle_state_error,
     reset_error_state,
 )
-from .tools import get_tools
-from .workflow import WorkflowManager, create_advanced_workflow_node
-from .error_handling import (
+from tools import get_tools
+from workflow import WorkflowManager, create_advanced_workflow_node
+from error_handling import (
     with_retry,
     RetryConfig,
     GracefulDegradation,

@@ -5,7 +5,7 @@ from typing import Dict, Any, List, Optional
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
 from langchain_anthropic import ChatAnthropic
 
-from .state import AgentState, update_metadata
+from state import AgentState, update_metadata
 
 logger = logging.getLogger(__name__)
 

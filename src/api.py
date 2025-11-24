@@ -10,7 +10,8 @@ from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from bob_langgraph_agent import BobAgent, BobConfig
+from agent import BobAgent
+from config import BobConfig
 
 # Configure logging
 logging.basicConfig(

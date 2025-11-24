@@ -4,7 +4,8 @@ import os
 import sys
 from typing import Optional
 
-from bob_langgraph_agent import BobAgent, BobConfig
+from agent import BobAgent
+from config import BobConfig
 
 
 def print_streaming_response(agent: BobAgent, user_input: str, thread_id: str):
